@@ -1,0 +1,113 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+### Import modules ###
+from Bio import SeqIO
+import argparse
+import random
+import sys
+from submodules import distance
+######################
+
+SOFTWARE_NAME="seq_diversity"
+
+# func
+def diversity( args ):
+
+    input_filepath          = args.input
+    number_of_sampled_pairs = args.sample
+    distance_definition     = args.distance
+    random.seed(args.seed)
+
+    # Read the tree file
+    
+    if (input_filepath!=None):
+        records = SeqIO.parse(input_filepath, "fasta")
+    else:
+        records = SeqIO.parse(sys.stdin, "fasta")
+
+
+    name2seq = {}
+
+    for record in records:
+        name2seq[record.name] = str(record.seq)
+
+    name_list = list(name2seq.keys())
+    N = len(name_list)
+
+    if (N < 2): 
+        print ("Only", N, "sequences found in the input file!", sep = " ")
+    
+    number_of_all_pairs = N * (N - 1) / 2
+
+    if ( number_of_sampled_pairs == None ):
+
+        for i, name1 in enumerate(name_list):
+            for name2 in name_list[i+1:]:
+
+                print (name1, name2, distance.calc_distance(name2seq[name1], name2seq[name2], distance_definition), sep = "\t")
+
+    elif ( number_of_sampled_pairs >= number_of_all_pairs ):
+
+        for i, name1 in enumerate(name_list):
+            for name2 in name_list[i+1:]:
+
+                print (name1, name2, distance.calc_distance(name2seq[name1], name2seq[name2], distance_definition), sep = "\t")
+    
+    else:
+
+        for _ in range(number_of_sampled_pairs):
+
+            name_pair = random.sample(name_list, 2)
+
+            name1 = name_pair[0]
+            name2 = name_pair[1]
+
+            print (name1, name2, distance.calc_distance(name2seq[name1], name2seq[name2], distance_definition), sep = "\t")
+
+
+    
+# interface
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=SOFTWARE_NAME, add_help = True)
+    
+    parser.add_argument(
+        "-v", "--version",
+        help    = "Print table rep version",
+        action  = 'store_true',
+        default = False
+        )
+    
+    parser.add_argument(
+        "-i", "--input",
+        help    = "Input sequence file path (FASTA format)",
+        )
+    
+    parser.add_argument(
+        "-s", "--sample",
+        help    = "Number of sampled sequence pairs (Default: all pairs)",
+        type    = int,
+        default = None
+        )
+    
+    parser.add_argument(
+        "--seed",
+        help    = "Random number seed (Default: 0)",
+        type    = int,
+        default = 0
+        )
+
+    parser.add_argument(
+        "-d", "--distance",
+        help    = "Definition of the distance \
+                    (Permissive values: \
+                        'NHD' (Default): Hamming distance only considering aligned positions normalized by the number of positions \
+                        )",
+        default = "NHD"
+        )
+
+    # parse arguments
+    args = parser.parse_args()
+
+    # execute main_function()
+    diversity ( args )
